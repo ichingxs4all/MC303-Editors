@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MC-303 Rhythm Kit Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f12;
+    --panel: #141820;
+    --panel2: #1b2130;
+    --accent: #e8440a;
+    --accent2: #f07d3c;
+    --led-on: #ff5500;
+    --led-off: #2a1800;
+    --text: #d8cfc4;
+    --muted: #7a7068;
+    --border: #2a3040;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-ui: 'Rajdhani', sans-serif;
+    --dial-track: #222a38;
+    --dial-fill: #e8440a;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 2rem 1rem 3rem;
+  }
+
+  .device {
+    width: 100%;
+    max-width: 560px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 20px 28px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .brand-main {
+    font-family: var(--font-ui);
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  .brand-sub {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.18em;
+    margin-top: 3px;
+  }
+
+  .midi-status {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .led {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--led-off);
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+
+  .led.active { background: var(--led-on); box-shadow: 0 0 6px var(--led-on); }
+
+  select {
+    background: var(--panel2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 8px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  select:focus { border-color: var(--accent); }
+
+  .ch-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+
+  .ch-row select { width: 56px; }
+
+  .dials-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .dial-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dial-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  .dial-wrap {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    cursor: pointer;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .dial-wrap svg { width: 100%; height: 100%; overflow: visible; }
+
+  .dial-value {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent2);
+    min-width: 32px;
+    text-align: center;
+  }
+
+  .cc-badge {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: #3a4558;
+    letter-spacing: 0.08em;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin-bottom: 18px;
+  }
+
+  .note-section {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .note-section-title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .note-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .note-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .note-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-family: var(--font-mono);
+    font-size: 20px;
+    color: var(--accent);
+    min-width: 80px;
+    text-align: center;
+    letter-spacing: 0.06em;
+  }
+
+  .note-sub {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .note-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .note-cc {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: #3a4558;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .toggle-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .toggle-btn {
+    width: 42px;
+    height: 22px;
+    border-radius: 11px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+  }
+
+  .toggle-btn.on {
+    background: rgba(232,68,10,0.18);
+    border-color: var(--accent);
+  }
+
+  .toggle-knob {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    background: var(--muted);
+    transition: transform 0.2s, background 0.2s;
+  }
+
+  .toggle-btn.on .toggle-knob {
+    transform: translateX(20px);
+    background: var(--accent);
+  }
+
+  .note-manual {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .note-input {
+    width: 64px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 5px 8px;
+    text-align: center;
+    outline: none;
+  }
+
+  .note-input:focus { border-color: var(--accent); }
+
+  .send-btn {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .send-btn:hover { background: var(--accent); color: #fff; }
+  .send-btn:active { opacity: 0.8; }
+
+  .log-area {
+    margin-top: 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    max-height: 72px;
+    overflow-y: auto;
+    line-height: 1.6;
+  }
+
+  .log-entry { color: var(--accent2); }
+  .log-entry.rx { color: #4a9eff; }
+  .log-entry.err { color: #e24b4a; }
+
+  .no-midi-banner {
+    background: rgba(162,45,45,0.12);
+    border: 1px solid #a32d2d;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: #e24b4a;
+    text-align: center;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  .all-send-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+  }
+
+  .all-send-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .all-send-btn:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="device">
+  <div id="no-midi" class="no-midi-banner">WebMIDI not available — use Chrome/Edge for MIDI output</div>
+
+  <div class="header">
+    <div class="brand">
+      <span class="brand-main">MC-303</span>
+      <span class="brand-sub">Rhythm Kit Editor</span>
+    </div>
+    <div class="midi-status">
+      <div class="status-row">
+        <div class="led" id="led-midi"></div>
+        <span id="label-midi">no midi</span>
+      </div>
+      <div class="status-row">
+        <div class="led" id="led-rx"></div>
+        <span>note in</span>
+      </div>
+      <select id="out-select">
+        <option value="">-- output --</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="ch-row">
+    <span>MIDI CH</span>
+    <select id="ch-select">
+      <option value="1" selected>1</option>
+      <option value="1">1</option><option value="2">2</option>
+      <option value="3">3</option><option value="4">4</option>
+      <option value="5">5</option><option value="7">7</option>
+      <option value="8">8</option><option value="9">9</option>
+      <option value="10">10</option><option value="11">11</option>
+      <option value="12">12</option><option value="13">13</option>
+      <option value="14">14</option><option value="15">15</option>
+      <option value="16">16</option>
+    </select>
+    <span style="margin-left:auto; font-size:9px; color:#3a4558">NRPN: CC99(param) CC6(val) / note → CC98</span>
+  </div>
+
+  <div class="dials-grid">
+    <div class="dial-cell">
+      <div class="dial-label">Pitch</div>
+      <div class="dial-wrap" id="dial-pitch" data-cc="24" data-value="64" data-min="0" data-max="127"></div>
+      <div class="dial-value" id="val-pitch">64</div>
+      <div class="cc-badge">NRPN 24</div>
+    </div>
+    <div class="dial-cell">
+      <div class="dial-label">Level</div>
+      <div class="dial-wrap" id="dial-level" data-cc="26" data-value="127" data-min="0" data-max="127"></div>
+      <div class="dial-value" id="val-level">127</div>
+      <div class="cc-badge">NRPN 26</div>
+    </div>
+    <div class="dial-cell">
+      <div class="dial-label">Pan</div>
+      <div class="dial-wrap" id="dial-pan" data-cc="28" data-value="64" data-min="0" data-max="127"></div>
+      <div class="dial-value" id="val-pan">64</div>
+      <div class="cc-badge">NRPN 28</div>
+    </div>
+    <div class="dial-cell">
+      <div class="dial-label">Reverb</div>
+      <div class="dial-wrap" id="dial-reverb" data-cc="29" data-value="127" data-min="0" data-max="127"></div>
+      <div class="dial-value" id="val-reverb">127</div>
+      <div class="cc-badge">NRPN 29</div>
+    </div>
+    <div class="dial-cell">
+      <div class="dial-label">Chorus</div>
+      <div class="dial-wrap" id="dial-chorus" data-cc="30" data-value="127" data-min="0" data-max="127"></div>
+      <div class="dial-value" id="val-chorus">127</div>
+      <div class="cc-badge">NRPN 30</div>
+    </div>
+  </div>
+
+  <div class="all-send-row">
+    <button class="all-send-btn" id="btn-all">Send All</button>
+  </div>
+
+  <div class="divider" style="margin-top:16px;"></div>
+
+  <div class="note-section">
+    <div class="note-section-title">Kit Instrument Note (NRPN MSB · CC 98)</div>
+    <div class="note-row">
+      <div class="note-display">
+        <div class="note-box" id="note-display">---</div>
+        <div class="note-sub">
+          <div class="note-num" id="note-num">note --</div>
+          <div class="note-cc">CC 98 (NRPN MSB) ch6</div>
+        </div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Auto<br>capture</span>
+        <div class="toggle-btn on" id="toggle-auto">
+          <div class="toggle-knob"></div>
+        </div>
+      </div>
+    </div>
+    <div class="note-manual">
+      <input type="number" class="note-input" id="note-manual-input" min="11" max="118" placeholder="11–118" />
+      <button class="send-btn" id="btn-send-note">Send Note</button>
+    </div>
+  </div>
+
+  <div class="log-area" id="log">
+    <span style="color:#3a4558">— waiting for midi —</span>
+  </div>
+</div>
+
+<script>
+const DIALS = [
+  { id: 'dial-pitch',  valId: 'val-pitch',  cc: 24, init: 64 },
+  { id: 'dial-level',  valId: 'val-level',  cc: 26, init: 127 },
+  { id: 'dial-pan',    valId: 'val-pan',    cc: 28, init: 64 },
+  { id: 'dial-reverb', valId: 'val-reverb', cc: 29, init: 127 },
+  { id: 'dial-chorus', valId: 'val-chorus', cc: 30, init: 127 },
+];
+
+let midiOut = null;
+let autoCapture = true;
+let currentNote = null;
+let ledRxTimer = null;
+
+const log = document.getElementById('log');
+function addLog(msg, type) {
+  const d = document.createElement('div');
+  d.className = 'log-entry' + (type ? ' ' + type : '');
+  d.textContent = msg;
+  log.appendChild(d);
+  if (log.children.length > 30) log.removeChild(log.firstChild);
+  log.scrollTop = log.scrollHeight;
+}
+
+function getMidiChannel() {
+  return parseInt(document.getElementById('ch-select').value, 10) - 1;
+}
+
+function sendCC(paramNum, value) {
+  if (!midiOut) return;
+  const ch = getMidiChannel();
+  const status = 0xB0 | ch;
+  midiOut.send([status, 6,  value]);
+  addLog(`TX  NRPN LSB=${paramNum} val=${value}  ch${ch + 1}`);
+  midiOut.send([status, 99, paramNum]);
+}
+
+function sendNoteCC(noteNum) {
+  if (!midiOut) return;
+  const ch = getMidiChannel();
+  midiOut.send([0xB0 | ch, 98, noteNum]);
+  addLog(`TX  CC 98 = ${noteNum}  (${noteNumToName(noteNum)})  ch${ch + 1}`);
+}
+
+function noteNumToName(n) {
+  const notes = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const oct = Math.floor(n / 12) - 1;
+  return notes[n % 12] + oct;
+}
+
+function flashRx() {
+  const led = document.getElementById('led-rx');
+  led.classList.add('active');
+  clearTimeout(ledRxTimer);
+  ledRxTimer = setTimeout(() => led.classList.remove('active'), 120);
+}
+
+function setNote(n) {
+  currentNote = n;
+  document.getElementById('note-display').textContent = noteNumToName(n);
+  document.getElementById('note-num').textContent = `note ${n}`;
+  document.getElementById('note-manual-input').value = n;
+}
+
+function buildDial(el) {
+  const cc = parseInt(el.dataset.cc, 10);
+  const init = parseInt(el.dataset.value, 10);
+  el._val = init;
+
+  const svg = `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="30" cy="30" r="24" fill="#0d0f12" stroke="#2a3040" stroke-width="1.5"/>
+    <circle cx="30" cy="30" r="20" fill="#141820" stroke="none"/>
+    <circle class="track" cx="30" cy="30" r="17" fill="none" stroke="#222a38" stroke-width="5"
+      stroke-dasharray="90 10000" stroke-dashoffset="-45" stroke-linecap="round"/>
+    <circle class="fill" cx="30" cy="30" r="17" fill="none" stroke="#e8440a" stroke-width="5"
+      stroke-dasharray="0 10000" stroke-dashoffset="-45" stroke-linecap="round"/>
+    <line class="needle" x1="30" y1="30" x2="30" y2="13" stroke="#f07d3c" stroke-width="2" stroke-linecap="round"/>
+  </svg>`;
+  el.innerHTML = svg;
+  updateDialVisual(el, init);
+  bindDialEvents(el);
+}
+
+const DEG_START = 135;
+const DEG_RANGE = 270;
+const CIRC = 2 * Math.PI * 17;
+
+function updateDialVisual(el, val) {
+  const pct = val / 127;
+  const deg = DEG_START + pct * DEG_RANGE;
+  const radNeedle = (deg - 90) * Math.PI / 180;
+  const nx = 30 + 17 * Math.cos(radNeedle);
+  const ny = 30 + 17 * Math.sin(radNeedle);
+  el.querySelector('.needle').setAttribute('x2', nx.toFixed(2));
+  el.querySelector('.needle').setAttribute('y2', ny.toFixed(2));
+
+  const arcLen = pct * DEG_RANGE / 360 * CIRC;
+  const trackLen = DEG_RANGE / 360 * CIRC;
+  const trackOffset = -(DEG_START / 360 * CIRC);
+  const fillOffset = trackOffset;
+
+  el.querySelector('.track').setAttribute('stroke-dasharray', `${trackLen.toFixed(2)} 10000`);
+  el.querySelector('.track').setAttribute('stroke-dashoffset', trackOffset.toFixed(2));
+  el.querySelector('.fill').setAttribute('stroke-dasharray', `${arcLen.toFixed(2)} 10000`);
+  el.querySelector('.fill').setAttribute('stroke-dashoffset', fillOffset.toFixed(2));
+}
+
+function bindDialEvents(el) {
+  let dragging = false;
+  let startY = 0;
+  let startVal = 0;
+  const cc = parseInt(el.dataset.cc, 10);
+  const valEl = document.getElementById('val-' + el.id.replace('dial-', ''));
+
+  function onMove(clientY) {
+    const dy = startY - clientY;
+    const delta = Math.round(dy * 0.9);
+    let nv = Math.max(0, Math.min(127, startVal + delta));
+    if (nv !== el._val) {
+      el._val = nv;
+      updateDialVisual(el, nv);
+      valEl.textContent = nv;
+      sendCC(cc, nv);
+    }
+  }
+
+  el.addEventListener('mousedown', e => {
+    dragging = true; startY = e.clientY; startVal = el._val;
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e => { if (dragging) onMove(e.clientY); });
+  window.addEventListener('mouseup', () => { dragging = false; });
+
+  el.addEventListener('touchstart', e => {
+    dragging = true; startY = e.touches[0].clientY; startVal = el._val;
+    e.preventDefault();
+  }, { passive: false });
+  window.addEventListener('touchmove', e => { if (dragging) onMove(e.touches[0].clientY); }, { passive: false });
+  window.addEventListener('touchend', () => { dragging = false; });
+
+  el.addEventListener('wheel', e => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 1 : -1;
+    let nv = Math.max(0, Math.min(127, el._val + delta));
+    el._val = nv;
+    updateDialVisual(el, nv);
+    valEl.textContent = nv;
+    sendCC(cc, nv);
+  }, { passive: false });
+}
+
+DIALS.forEach(d => buildDial(document.getElementById(d.id)));
+
+document.getElementById('toggle-auto').addEventListener('click', function() {
+  autoCapture = !autoCapture;
+  this.classList.toggle('on', autoCapture);
+});
+
+document.getElementById('btn-send-note').addEventListener('click', () => {
+  const v = parseInt(document.getElementById('note-manual-input').value, 10);
+  if (isNaN(v) || v < 11 || v > 118) {
+    addLog('ERR note out of range (11–118)', 'err'); return;
+  }
+  setNote(v);
+  sendNoteCC(v);
+});
+
+document.getElementById('btn-all').addEventListener('click', () => {
+  DIALS.forEach(d => {
+    const el = document.getElementById(d.id);
+    sendCC(d.cc, el._val);
+  });
+  if (currentNote !== null) sendNoteCC(currentNote);
+});
+
+async function initMIDI() {
+  if (!navigator.requestMIDIAccess) {
+    document.getElementById('no-midi').style.display = 'block';
+    addLog('WebMIDI not supported — use Chrome/Edge', 'err');
+    return;
+  }
+  try {
+    const access = await navigator.requestMIDIAccess();
+    populateOutputs(access);
+    access.onstatechange = () => populateOutputs(access);
+
+    for (const input of access.inputs.values()) {
+      input.onmidimessage = onMidiMessage;
+    }
+    access.onstatechange = e => {
+      populateOutputs(access);
+      if (e.port.type === 'input' && e.port.state === 'connected') {
+        e.port.onmidimessage = onMidiMessage;
+      }
+    };
+  } catch (err) {
+    addLog('MIDI access denied: ' + err.message, 'err');
+    document.getElementById('no-midi').style.display = 'block';
+  }
+}
+
+function populateOutputs(access) {
+  const sel = document.getElementById('out-select');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">-- output --</option>';
+  for (const out of access.outputs.values()) {
+    const opt = document.createElement('option');
+    opt.value = out.id;
+    opt.textContent = out.name;
+    sel.appendChild(opt);
+  }
+  if (current) sel.value = current;
+  resolveOutput(access);
+
+  const ledMidi = document.getElementById('led-midi');
+  const labelMidi = document.getElementById('label-midi');
+  if (access.outputs.size > 0) {
+    ledMidi.classList.add('active');
+    labelMidi.textContent = 'midi ok';
+  } else {
+    ledMidi.classList.remove('active');
+    labelMidi.textContent = 'no output';
+  }
+}
+
+function resolveOutput(access) {
+  const id = document.getElementById('out-select').value;
+  midiOut = id ? access.outputs.get(id) : null;
+}
+
+document.getElementById('out-select').addEventListener('change', async () => {
+  const access = await navigator.requestMIDIAccess();
+  resolveOutput(access);
+  if (midiOut) addLog(`Output: ${midiOut.name}`);
+});
+
+function onMidiMessage(e) {
+  const [status, data1, data2] = e.data;
+  const type = status & 0xF0;
+  if (type === 0x90 && data2 > 0) {
+    flashRx();
+    if (autoCapture && data1 >= 11 && data1 <= 118) {
+      setNote(data1);
+      sendNoteCC(data1);
+      addLog(`RX  note-on ${data1} (${noteNumToName(data1)}) → CC 98`, 'rx');
+    } else if (autoCapture) {
+      addLog(`RX  note-on ${data1} (out of range 11–118)`, 'rx');
+    }
+  }
+}
+
+initMIDI();
+</script>
+</body>
+</html>
